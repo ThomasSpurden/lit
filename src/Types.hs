@@ -2,13 +2,15 @@ module Types where
 
 import Data.Text 
 
-data Chunk = Def Int Text [Part] | Prose Text deriving (Show, Eq)
+data SourceLoc = SourceLoc String Int deriving (Show, Eq)
+data Chunk = Def SourceLoc Text [Part] | Include String Text | Prose Text deriving (Show, Eq)
 data Part = Code Text | Ref Text Text deriving (Show, Eq)
 type Program = [Chunk]
 
 isDef chunk =
     case chunk of
     Def _ _ _ -> True
+    Include _ _ -> False
     Prose _ -> False
 getName chunk =
     case chunk of

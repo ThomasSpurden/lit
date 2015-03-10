@@ -7,9 +7,9 @@ import qualified Data.Text as T
 
 import Types
 
-encode :: T.Text -> [Chunk]
-encode txt =
-    case (parse entire "" txt) of 
+encode :: T.Text -> String -> [Chunk]
+encode txt fileName =
+    case (parse entire fileName txt) of 
     Left err -> []
     Right result -> result
 
@@ -17,28 +17,35 @@ entire :: Parser Program
 entire = manyTill chunk eof
 
 chunk :: Parser Chunk
-chunk = (try def) <|> prose
+chunk = (try def) <|> (try include) <|> prose
 
 prose :: Parser Chunk
 prose = grabLine >>= (\line -> return $ Prose line)
 
+include :: Parser Chunk
+include = do
+    pos <- getPosition
+    indent <- many ws
+    fileName <- packM =<< between (string ">>") (string "<<") (many $ noneOf "<")
+    return $ Include (sourceName pos) $ T.strip fileName
+
 def :: Parser Chunk
 def = do
-    (indent, header, lineNum) <- title
+    (indent, header, pos) <- title
     parts <- manyTill (part indent) $ endDef indent
-    return $ Def lineNum header parts
+    return $ Def (SourceLoc (sourceName pos) (sourceLine pos)) header parts
 
 endDef :: String -> Parser ()
 endDef indent = try $ do { skipMany newline; notFollowedBy (string indent) <|> (lookAhead title >> parserReturn ()) }
 
 -- Returns (indent, macro-name, line-no)
-title :: Parser (String, T.Text, Int)
+title :: Parser (String, T.Text, SourcePos)
 title = do
     pos <- getPosition
     indent <- many ws
     name <- packM =<< between (string "<<") (string ">>=") (many notDelim)
     newline
-    return $ (indent, T.strip name, sourceLine pos)
+    return $ (indent, T.strip name, pos)
 
 notDelim = noneOf ">="
 
