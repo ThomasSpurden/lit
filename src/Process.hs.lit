@@ -42,7 +42,7 @@ Process as a library accompolishes the primary goals through the `process` funct
     << process a single file >>=
     process pipes file = do 
         stream <- readFile file
-        encoded <- return $ encode stream 
+        encoded <- return $ encode stream file
         mapM_ (\f -> f fileName encoded) pipes >> return ()
         where
             fileName = dropExtension $ takeFileName file

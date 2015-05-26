@@ -19,7 +19,7 @@ import Markdown
 import Types
 process pipes file = do 
     stream <- readFile file
-    encoded <- return $ encode stream 
+    encoded <- return $ encode stream file
     mapM_ (\f -> f fileName encoded) pipes >> return ()
     where
         fileName = dropExtension $ takeFileName file
