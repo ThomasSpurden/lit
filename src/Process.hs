@@ -1,9 +1,12 @@
+{-# LINE 11 "Process.hs.lit" #-}
+{-# LINE 18 "Process.hs.lit" #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Process
 ( process
 , htmlPipeline
 , mdPipeline
 , codePipeline ) where
+{-# LINE 27 "Process.hs.lit" #-}
 import Prelude hiding (readFile, writeFile)
 import Data.Text.IO (writeFile, readFile)
 import System.FilePath.Posix (takeFileName, takeExtension, dropExtension)
@@ -17,25 +20,31 @@ import Code
 import Html
 import Markdown
 import Types
+{-# LINE 43 "Process.hs.lit" #-}
 process pipes file = do 
     stream <- readFile file
     encoded <- return $ encode stream file
     mapM_ (\f -> f fileName encoded) pipes >> return ()
     where
         fileName = dropExtension $ takeFileName file
+{-# LINE 57 "Process.hs.lit" #-}
+{-# LINE 63 "Process.hs.lit" #-}
 htmlPipeline dir mCss numberLines name enc = do
     maybeCss <- cssRelativeToOutput dir mCss
     let path = (addTrailingPathSeparator dir) ++ name ++ ".html"
         output = Html.generate maybeCss name enc
     writeFile path output
+{-# LINE 70 "Process.hs.lit" #-}
 mdPipeline dir css numberLines name enc = writeFile path output
     where
         path = (addTrailingPathSeparator dir) ++ name ++ ".md"
         output = Markdown.generate name enc
+{-# LINE 76 "Process.hs.lit" #-}
 codePipeline dir css numberLines name enc = writeFile path output
     where
         path = (addTrailingPathSeparator dir) ++ name
         output = Code.generate numberLines (takeExtension name) enc
+{-# LINE 84 "Process.hs.lit" #-}
 cssRelativeToOutput :: String -> Maybe String -> IO (Maybe String)
 cssRelativeToOutput output mCss =
     case mCss of

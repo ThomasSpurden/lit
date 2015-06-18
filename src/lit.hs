@@ -1,3 +1,5 @@
+{-# LINE 7 "lit.hs.lit" #-}
+{-# LINE 14 "lit.hs.lit" #-}
 module Main where
 
 import System.Console.GetOpt
@@ -9,6 +11,8 @@ import Control.Applicative
 
 import Process
 import Poll
+{-# LINE 29 "lit.hs.lit" #-}
+{-# LINE 35 "lit.hs.lit" #-}
 data Options = Options  { optCodeDir  :: String 
                         , optDocsDir  :: String
                         , optCss      :: Maybe String
@@ -18,6 +22,7 @@ data Options = Options  { optCodeDir  :: String
                         , optWatch    :: Bool
                         , optNumber   :: Bool
                         }
+{-# LINE 46 "lit.hs.lit" #-}
 startOptions :: Options
 startOptions = Options  { optCodeDir  = "./"
                         , optDocsDir  = "./"
@@ -28,6 +33,7 @@ startOptions = Options  { optCodeDir  = "./"
                         , optWatch    = False
                         , optNumber   = False
                         }
+{-# LINE 59 "lit.hs.lit" #-}
 options :: [ OptDescr (Options -> IO Options) ]
 options = 
     [ Option  "h" ["html"]
@@ -84,13 +90,16 @@ options =
                exitWith ExitSuccess))
        "Display help"
     ]
+{-# LINE 118 "lit.hs.lit" #-}
 usage = "Usage: lit OPTIONS... FILES..."
 help = "Try:   lit --help"
+{-# LINE 123 "lit.hs.lit" #-}
 main = do
     args <- getArgs
  
     -- Parse options, getting a list of option actions
     let (actions, files, errors) = getOpt Permute options args
+{-# LINE 131 "lit.hs.lit" #-}
     opts <- foldl (>>=) (return startOptions) actions
  
     let Options { optCodeDir  = codeDir
@@ -102,8 +111,10 @@ main = do
                 , optWatch    = watching
                 , optNumber   = numberLines
                 } = opts 
+{-# LINE 145 "lit.hs.lit" #-}
     codeDirCheck <- doesDirectoryExist codeDir
     docsDirCheck <- doesDirectoryExist docsDir
+{-# LINE 150 "lit.hs.lit" #-}
     let htmlPipe = if html     then [Process.htmlPipeline docsDir mCss numberLines] else []
         mdPipe   = if markdown then [Process.mdPipeline   docsDir mCss numberLines] else []
         codePipe = if code     then [Process.codePipeline codeDir mCss numberLines] else []
@@ -112,6 +123,7 @@ main = do
         errors'  = if codeDirCheck then [] else ["Directory: " ++ codeDir ++ " does not exist\n"]
         errors'' = if docsDirCheck then [] else ["Directory: " ++ docsDir ++ " does not exist\n"]
         allErr = errors ++ errors' ++ errors''
+{-# LINE 161 "lit.hs.lit" #-}
     if allErr /= [] || (not html && not code && not markdown) || files == []
         then hPutStrLn stderr ((concat allErr) ++ help) 
         else (maybeWatch (Process.process pipes)) files

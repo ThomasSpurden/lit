@@ -1,37 +1,43 @@
+{-# LINE 15 "Code.hs.lit" #-}
+{-# LINE 22 "Code.hs.lit" #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Code ( generate ) where
+{-# LINE 29 "Code.hs.lit" #-}
 import Data.List (partition, intersperse)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 
 import Types
+{-# LINE 44 "Code.hs.lit" #-}
 generate :: Bool -> String -> [Chunk] -> T.Text
-generate numberLines ext = expand . merge . (addLineNumbers numberExt) . (filter isDef)
+generate numberLines ext = expand . merge . numberFn . (filter isDef)
     where
-        numberExt = if numberLines then ext else ""
-addLineNumbers :: String -> [Chunk] -> [Chunk]
-addLineNumbers "" chunks = chunks
-addLineNumbers ext chunks = map numberDef chunks
+        numberFn = if numberLines then (addLineNumbers (getLineGenerator ext)) else id
+{-# LINE 52 "Code.hs.lit" #-}
+{-# LINE 60 "Code.hs.lit" #-}
+getLineGenerator :: String -> (String -> Int -> T.Text)
+getLineGenerator ".c" = \file line -> T.pack $ "#line " ++ (show line) ++ " \"" ++ file ++ "\"\n"
+getLineGenerator ".hs" = \file line -> T.pack $ "{-# LINE " ++ (show line) ++ " \"" ++ file ++ "\" #-}\n"
+getLineGenerator _ = \file line -> T.pack ""
+{-# LINE 67 "Code.hs.lit" #-}
+addLineNumbers :: (String -> Int -> T.Text) -> [Chunk] -> [Chunk]
+addLineNumbers generator chunks = map numberDefs chunks
     where
-        numberDef (Def (SourceLoc srcFile srcLine) name parts) =
-            Def (SourceLoc srcFile srcLine) name ((Code (makeDirective srcFile srcLine)):(addPostRefLineNumbers (makeDirective srcFile) srcLine parts))
-        numberDef chunk = chunk
-        makeDirective srcFile srcLine = case ext of
-            ".c" -> T.pack $ "#line " ++ (show srcLine) ++ " \"" ++ srcFile ++ "\"\n"
-            ".hs" -> T.pack $ "{-# LINE " ++ (show srcLine) ++ " \"" ++ srcFile ++ "\" #-}\n"
-            _ -> T.pack ""
-        addPostRefLineNumbers :: (Int -> T.Text) -> Int -> [Part] -> [Part]
-        addPostRefLineNumbers mkDirective cLine ((Ref name indent):(Code c):rest) =
-            (Ref name indent):(Code (mkDirective (cLine + 1))):(addPostRefLineNumbers mkDirective (cLine + 2) rest)
-        addPostRefLineNumbers mkDirective cLine (part:rest) =
-            part:(addPostRefLineNumbers mkDirective (cLine + 1) rest)
-        addPostRefLineNumbers mkDirective cLine [] = []
-
-       -- addPostRefLineNumbers mkDirective cLine (part:rest) = case part of
-       --     Code c -> (Code c):(addPostRefLineNumbers mkDirective (cLine + 1) rest)
-       --     Ref name indent -> (Ref name indent):(Code (mkDirective cLine)):(addPostRefLineNumbers mkDirective (cLine + 1) rest)
+        {-# LINE 76 "Code.hs.lit" #-}
+        numberDefs (Def (SourceLoc srcFile srcLine) name parts) =
+            Def (SourceLoc srcFile srcLine) name ((Code (generator srcFile (srcLine + 1))):(numberParts (generator srcFile) (srcLine + 1) parts))
+        numberDefs chunk = chunk
+        {-# LINE 85 "Code.hs.lit" #-}
+        numberParts :: (Int -> T.Text) -> Int -> [Part] -> [Part]
+        numberParts mkDirective cLine ((Ref name indent):(Code c):rest) =
+            (Ref name indent):(Code (mkDirective (cLine + 1))):(Code c):(numberParts mkDirective (cLine + 2) rest)
+        numberParts mkDirective cLine (part:rest) =
+            part:(numberParts mkDirective (cLine + 1) rest)
+        numberParts mkDirective cLine [] = []
+{-# LINE 95 "Code.hs.lit" #-}
 merge :: [Chunk] -> [Chunk]
 merge = mergeAux []
+{-# LINE 102 "Code.hs.lit" #-}
 mergeAux ans [] = ans
 mergeAux ans (next:rest) = 
     let 
@@ -41,6 +47,7 @@ mergeAux ans (next:rest) =
         merged = combineChunks (next:found)
     in 
         mergeAux (merged:ans) rem
+{-# LINE 117 "Code.hs.lit" #-}
 combineChunks :: [Chunk] -> Chunk
 combineChunks (a:[]) = a
 combineChunks l@(c:cs) = Def line name parts 
@@ -48,6 +55,7 @@ combineChunks l@(c:cs) = Def line name parts
         parts = concatMap getParts l
         name = getName c
         line = getLineNo c
+{-# LINE 131 "Code.hs.lit" #-}
 expand :: [Chunk] -> T.Text
 expand chunks =
     let 
@@ -57,6 +65,7 @@ expand chunks =
         parts = Map.lookupDefault backup "*" partMap 
     in
         expandParts parts partMap T.empty 
+{-# LINE 147 "Code.hs.lit" #-}
 expandParts :: [Part] -> Map.HashMap T.Text [Part] -> T.Text -> T.Text
 expandParts parts partMap baseIndent =
     let 
